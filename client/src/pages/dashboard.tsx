@@ -16,11 +16,11 @@ const DEFAULT_STATE: AppState = {
     History: 50,
   },
   pastPapers: [
-    { id: 1, title: 'Paper 1 (2022)', subject: 'Math', difficulty: 'Medium', board: 'AQA', url: '#' },
-    { id: 2, title: 'Paper 2 (2022)', subject: 'Physics', difficulty: 'Hard', board: 'Edexcel', url: '#' },
-    { id: 3, title: 'Paper 1 (2021)', subject: 'Chemistry', difficulty: 'Easy', board: 'OCR', url: '#' },
-    { id: 4, title: 'Paper 3 (2022)', subject: 'Biology', difficulty: 'Medium', board: 'AQA', url: '#' },
-    { id: 5, title: 'Paper 1 (2020)', subject: 'History', difficulty: 'Hard', board: 'Edexcel', url: '#' },
+    { id: 1, title: 'Paper 1 (2022)', subject: 'Math', difficulty: 'Medium', board: 'AQA', year: 2022, season: 'May/June', paperNumber: '1', topics: ['Algebra', 'Geometry'], curriculumCode: 'GCSE-MATH-AQA', url: 'https://www.aqa.org.uk/resources/mathematics/gcse/mathematics', downloadUrl: '#', markSchemeUrl: '#' },
+    { id: 2, title: 'Paper 2 (2022)', subject: 'Physics', difficulty: 'Hard', board: 'Edexcel', year: 2022, season: 'May/June', paperNumber: '2', topics: ['Forces', 'Energy'], curriculumCode: 'GCSE-PHYS-EDEX', url: 'https://qualifications.pearson.com/en/qualifications/edexcel-gcses/physics-2016.html', downloadUrl: '#', markSchemeUrl: '#' },
+    { id: 3, title: 'Paper 1 (2021)', subject: 'Chemistry', difficulty: 'Easy', board: 'OCR', year: 2021, season: 'May/June', paperNumber: '1', topics: ['Atomic Structure', 'Bonding'], curriculumCode: 'GCSE-CHEM-OCR', url: 'https://www.ocr.org.uk/qualifications/gcse/chemistry-gateway-j248/', downloadUrl: '#', markSchemeUrl: '#' },
+    { id: 4, title: 'Paper 3 (2022)', subject: 'Biology', difficulty: 'Medium', board: 'AQA', year: 2022, season: 'May/June', paperNumber: '3', topics: ['Cell Biology', 'Genetics'], curriculumCode: 'GCSE-BIO-AQA', url: 'https://www.aqa.org.uk/resources/biology/gcse/biology', downloadUrl: '#', markSchemeUrl: '#' },
+    { id: 5, title: 'Paper 1 (2020)', subject: 'History', difficulty: 'Hard', board: 'Edexcel', year: 2020, season: 'May/June', paperNumber: '1', topics: ['Medicine Through Time'], curriculumCode: 'GCSE-HIST-EDEX', url: 'https://qualifications.pearson.com/en/qualifications/edexcel-gcses/history-2016.html', downloadUrl: '#', markSchemeUrl: '#' },
   ],
   quests: [
     { id: 1, title: 'Complete a practice quiz', xp: 25, completed: false },
@@ -32,7 +32,8 @@ const DEFAULT_STATE: AppState = {
   settings: {
     xpMultiplier: 1.5
   },
-  studyStreak: [1, 2, 5, 8, 10, 11, 15, 16, 17, 20]
+  studyStreak: [1, 2, 5, 8, 10, 11, 15, 16, 17, 20],
+  resources: []
 };
 
 const RESOURCE_LINKS = [
