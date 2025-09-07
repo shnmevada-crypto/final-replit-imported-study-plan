@@ -1,0 +1,190 @@
+import { useState, useMemo } from 'react';
+import useLocalStorage from 'react-use/lib/useLocalStorage';
+
+// Placeholder for data
+const DEFAULT_STATE = {
+  xp: {
+    Math: 120,
+    Physics: 85,
+    Chemistry: 90,
+    Biology: 75,
+    History: 50,
+  },
+  pastPapers: [
+    { id: 1, title: 'Paper 1 (2022)', subject: 'Math', difficulty: 'Medium', board: 'AQA', url: '#' },
+    { id: 2, title: 'Paper 2 (2022)', subject: 'Physics', difficulty: 'Hard', board: 'Edexcel', url: '#' },
+    { id: 3, title: 'Paper 1 (2021)', subject: 'Chemistry', difficulty: 'Easy', board: 'OCR', url: '#' },
+    { id: 4, title: 'Paper 3 (2022)', subject: 'Biology', difficulty: 'Medium', board: 'AQA', url: '#' },
+    { id: 5, title: 'Paper 1 (2020)', subject: 'History', difficulty: 'Hard', board: 'Edexcel', url: '#' },
+  ],
+  settings: {
+    xpMultiplier: 1.5
+  }
+};
+
+const RESOURCE_LINKS = [
+  { name: 'Khan Academy', url: 'https://www.khanacademy.org/' },
+  { name: 'BBC Bitesize', url: 'https://www.bbc.co.uk/bitesize' },
+  { name: 'Save My Exams', url: 'https://www.mysavemyexams.com/' },
+  { name: 'Physics & Maths Tutor', url: 'https://www.physicsandmathstutor.com/' }
+];
+
+
+// --- Components ---
+function XPBar({ xp, max, subject }) {
+  return (
+    <div className="text-center w-16">
+      <div className="h-28 flex items-end">
+        <div
+          style={{ height: `${(xp / max) * 100}%` }}
+          className="w-full rounded-t-md transition-all">
+          <div className="h-full rounded-t-md" style={{ background: 'linear-gradient(180deg,#3b82f6,#7c3aed)' }} />
+        </div>
+      </div>
+      <div className="text-xs mt-2">{subject}</div>
+    </div>
+  );
+}
+
+
+function MiniCalendar({ highlighted = [] }) {
+  const days = Array.from({ length: 30 }, (_, i) => i + 1);
+  return (
+    <div className="grid grid-cols-7 gap-1 text-xs">
+      {days.map((d) => (
+        <div
+          key={d}
+          className={`p-2 rounded text-center ${highlighted.includes(d) ? 'bg-[rgba(124,58,237,0.18)] ring-1 ring-[rgba(124,58,237,0.18)]' : 'bg-transparent'}`}>
+          {d}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+
+function Tooltip({ children, text }) {
+  return (
+    <div className="relative group inline-block">
+      {children}
+      <div className="pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-200 absolute z-50 bottom-full mb-2 left-1/2 -translate-x-1/2 w-max max-w-xs p-2 rounded bg-[rgba(0,0,0,0.75)] text-sm text-white shadow-lg">
+        {text}
+      </div>
+    </div>
+  );
+}
+
+
+export default function App() {
+  const [state, setState] = useLocalStorage('solo_leveling_state', DEFAULT_STATE);
+  const [ui, setUi] = useState({ showPastPapers: false, selectedPaper: null, filter: { subject: 'All', difficulty: 'All', board: 'All' }, modalOpen: false });
+  const [selectedQuest, setSelectedQuest] = useState(null);
+
+
+  const subjects = useMemo(() => Object.keys(state.xp), [state.xp]);
+  const totalXP = useMemo(() => Object.values(state.xp).reduce((a, b) => a + b, 0), [state.xp]);
+
+
+  const aiTip = useMemo(() => {
+    const items = Object.entries(state.xp).sort((a, b) => a[1] - b[1]);
+    const weakest = items[0][0];
+    return `Focus on ${weakest}: try 20 minutes of active recall and 3 targeted practice questions.`;
+  }, [state.xp]);
+
+
+  function addXp(subject, amount) {
+    setState((s) => ({ ...s, xp: { ...s.xp, [subject]: Math.max(0, s.xp[subject] + Math.round(amount * s.settings?.xpMultiplier || 1)) } }));
+  }
+
+
+  // Past paper filtering
+  const filteredPapers = state.pastPapers.filter((p) => (ui.filter.subject === 'All' || p.subject === ui.filter.subject) && (ui.filter.difficulty === 'All' || p.difficulty === ui.filter.difficulty) && (ui.filter.board === 'All' || p.board === ui.filter.board));
+
+
+  const maxXP = useMemo(() => Math.max(...Object.values(state.xp)), [state.xp]);
+
+  return (
+    <div className="min-h-screen bg-[#07070a] text-white p-6 font-sans">
+      <div className="max-w-4xl mx-auto">
+        {/* Header */}
+        <header className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold">📚 Solo Leveling</h1>
+          <div className="flex items-center gap-4">
+            <Tooltip text={aiTip}>
+              <div className="bg-[#1a1a2e] text-blue-300 rounded-full p-2 text-sm cursor-pointer">
+                💡
+              </div>
+            </Tooltip>
+            <div className="text-sm">Total XP: {totalXP}</div>
+          </div>
+        </header>
+
+        {/* XP Bars */}
+        <div className="bg-[#0e1116] p-5 mb-6 rounded-2xl">
+          <h2 className="font-semibold text-lg mb-4">Subject Mastery</h2>
+          <div className="flex justify-around items-end h-40">
+            {subjects.map((subject) => (
+              <XPBar key={subject} xp={state.xp[subject]} max={maxXP} subject={subject} />
+            ))}
+          </div>
+        </div>
+
+        {/* Calendar and Quests */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <div className="bg-[#0e1116] p-5 rounded-2xl">
+            <h2 className="font-semibold text-lg mb-3">Study Streak</h2>
+            <MiniCalendar highlighted={[1, 2, 5, 8, 10, 11, 15, 16, 17, 20]} />
+          </div>
+
+          <div className="bg-[#0e1116] p-5 rounded-2xl">
+            <h2 className="font-semibold text-lg mb-3">Daily Quests</h2>
+            <ul className="text-sm">
+              <li className="flex justify-between items-center py-2 border-b border-[rgba(255,255,255,0.05)]">
+                Complete a practice quiz
+                <button className="px-2 py-1 text-xs rounded-full bg-gradient-to-r from-[#06b6d4] to-[#7c3aed]">
+                  +25 XP
+                </button>
+              </li>
+              <li className="flex justify-between items-center py-2 border-b border-[rgba(255,255,255,0.05)]">
+                Review flashcards for 15 minutes
+                <button className="px-2 py-1 text-xs rounded-full bg-gradient-to-r from-[#06b6d4] to-[#7c3aed]">
+                  +20 XP
+                </button>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        {/* Resource Links Extended */}
+        <div className="bg-[#0e1116] p-5 mb-6 rounded-2xl">
+          <h2 className="font-semibold text-lg mb-3">Resource Links</h2>
+          <ul className="grid grid-cols-2 gap-2">
+            {RESOURCE_LINKS.map((r) => (
+              <li key={r.name}>
+                <a href={r.url} target="_blank" rel="noreferrer" className="underline text-sm hover:text-blue-400">{r.name}</a>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+
+        {/* Past Paper Vault Preview */}
+        <div className="bg-[#0e1116] p-5 rounded-2xl">
+          <h2 className="font-semibold text-lg mb-3">Past Paper Vault</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-96 overflow-auto">
+            {filteredPapers.map((p) => (
+              <div key={p.id} className="p-3 bg-[rgba(255,255,255,0.02)] rounded">
+                <div className="font-medium">{p.title}</div>
+                <div className="text-xs opacity-70">{p.subject} • {p.difficulty} • {p.board}</div>
+                <div className="mt-2 flex gap-2">
+                  <a href={p.url} target="_blank" rel="noreferrer" className="px-2 py-1 text-sm rounded bg-[rgba(255,255,255,0.03)]">Preview</a>
+                  <a href={p.url} download className="px-2 py-1 text-sm rounded bg-gradient-to-r from-[#06b6d4] to-[#7c3aed]">Download</a>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
