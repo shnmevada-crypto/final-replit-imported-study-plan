@@ -33,41 +33,29 @@ const WEEKLY_QUEST_TEMPLATES = [
     weeks: [1, 2, 3, 4, 5, 6, 7, 8],
     quests: [
       {
-        subject: 'Mathematics',
-        title: 'Master Algebraic Fundamentals',
-        description: 'Complete comprehensive practice on algebraic expressions, equations, and basic graph interpretation',
-        topics: ['Algebraic expressions', 'Linear equations', 'Coordinate geometry'],
+        subject: 'Maths',
+        title: 'Master Algebraic Fundamentals (Edexcel)',
+        description: 'Complete comprehensive practice on algebraic expressions, equations, and basic graph interpretation aligned with Edexcel GCSE Mathematics',
+        topics: ['Algebraic expressions', 'Linear equations', 'Coordinate geometry', 'Quadratic equations'],
         difficulty: 'Medium' as const,
         xp: 100,
         estimatedTime: '4-5 hours',
-        resources: ['Edexcel GCSE Mathematics textbook Ch. 1-3', 'BBC Bitesize Algebra'],
-        tips: ['Start with simple equations', 'Practice substitution daily', 'Use visual aids for graphs'],
-        requirements: ['Complete 20 algebraic problems', 'Solve 5 linear equations', 'Plot 3 coordinate graphs']
+        resources: ['Edexcel GCSE Mathematics Pearson textbook', 'Corbettmaths videos', 'Mathsgenie practice papers'],
+        tips: ['Start with simple equations', 'Use BIDMAS for order of operations', 'Practice substitution with negative numbers', 'Draw coordinate grids carefully'],
+        requirements: ['Complete 25 algebraic problems from Edexcel past papers', 'Solve 8 linear equations', 'Plot 5 coordinate graphs with negative values', 'Practice 3 quadratic factorisation']
       },
       {
-        subject: 'English Language',
-        title: 'Creative Writing Mastery',
-        description: 'Develop descriptive writing skills with focus on narrative techniques and character development',
-        topics: ['Descriptive writing', 'Narrative structure', 'Character development'],
+        subject: 'EnglishLanguage',
+        title: 'Creative Writing Excellence (AQA Paper 1)',
+        description: 'Master descriptive and narrative writing techniques for AQA English Language Paper 1, focusing on engaging openings and vivid descriptions',
+        topics: ['Descriptive writing', 'Narrative structure', 'Character development', 'Setting description', 'Dialogue techniques'],
         difficulty: 'Medium' as const,
         xp: 80,
         estimatedTime: '3-4 hours',
-        resources: ['AQA English Language Paper 1 examples', 'Writing techniques guide'],
-        tips: ['Use sensory details', 'Show don\'t tell', 'Vary sentence structure'],
-        requirements: ['Write 2 descriptive pieces', 'Practice dialogue writing', 'Complete character profiles']
+        resources: ['AQA English Language Paper 1 past papers', 'Mr Bruff YouTube channel', 'AQA writing exemplars'],
+        tips: ['Start with powerful opening sentences', 'Use all 5 senses in descriptions', 'Vary sentence lengths for rhythm', 'Show character through actions and dialogue'],
+        requirements: ['Write 2 descriptive pieces (150 words each)', 'Create 3 engaging story openings', 'Practice dialogue punctuation', 'Complete timed writing exercise (45 mins)']
       },
-      {
-        subject: 'Physics',
-        title: 'Forces and Motion Foundations',
-        description: 'Build understanding of fundamental physics concepts including Newton\'s laws and motion calculations',
-        topics: ['Forces', 'Motion', 'Velocity', 'Acceleration'],
-        difficulty: 'Medium' as const,
-        xp: 90,
-        estimatedTime: '4 hours',
-        resources: ['AQA GCSE Physics textbook Ch. 5', 'Physics & Maths Tutor worksheets'],
-        tips: ['Draw force diagrams', 'Practice unit conversions', 'Use real-world examples'],
-        requirements: ['Solve 15 motion problems', 'Draw 5 force diagrams', 'Complete velocity calculations']
-      }
     ]
   },
   // Week 9-16: Intermediate Development
@@ -100,15 +88,15 @@ const WEEKLY_QUEST_TEMPLATES = [
       },
       {
         subject: 'French',
-        title: 'Conversational French Excellence',
-        description: 'Develop speaking and listening skills with focus on common GCSE conversation topics',
-        topics: ['Family and relationships', 'Daily routine', 'Food and drink'],
+        title: 'Conversational French Excellence (AQA)',
+        description: 'Develop speaking and listening skills for AQA GCSE French with focus on assessment objectives and common conversation topics',
+        topics: ['Family and relationships', 'Daily routine', 'Food and drink', 'Local environment', 'Future plans'],
         difficulty: 'Medium' as const,
         xp: 85,
         estimatedTime: '4 hours',
-        resources: ['AQA French speaking cards', 'Language learning apps', 'Audio resources'],
-        tips: ['Practice pronunciation daily', 'Record yourself speaking', 'Learn key phrases by heart'],
-        requirements: ['Record 5 speaking exercises', 'Learn 50 new vocabulary words', 'Practice conversation topics']
+        resources: ['AQA French speaking photo cards', 'Role-play scenarios', 'Authentic French audio materials'],
+        tips: ['Practice with AQA assessment criteria', 'Record yourself for self-assessment', 'Learn key phrases with correct pronunciation', 'Use opinion phrases with justification'],
+        requirements: ['Record 5 speaking exercises using AQA format', 'Learn 50 topic-specific vocabulary words', 'Practice conversation topics with time limits']
       }
     ]
   },
@@ -117,40 +105,40 @@ const WEEKLY_QUEST_TEMPLATES = [
     weeks: [17, 18, 19, 20, 21, 22, 23, 24],
     quests: [
       {
-        subject: 'Business Studies',
-        title: 'Entrepreneurship Project',
-        description: 'Design a complete business plan incorporating marketing, finance, and operational strategies',
-        topics: ['Business planning', 'Marketing mix', 'Financial planning', 'Operations'],
+        subject: 'Business',
+        title: 'Entrepreneurship Project (AQA)',
+        description: 'Design a complete business plan for AQA GCSE Business incorporating marketing mix, financial analysis, and operational strategies',
+        topics: ['Business planning', 'Marketing mix (4Ps)', 'Financial forecasting', 'Operations management', 'Stakeholder analysis'],
         difficulty: 'Hard' as const,
         xp: 150,
         estimatedTime: '6-7 hours',
-        resources: ['AQA Business Studies textbook', 'Real business case studies', 'Financial planning templates'],
-        tips: ['Research real businesses', 'Use SWOT analysis', 'Include realistic financial projections'],
-        requirements: ['Complete business plan', 'Design marketing strategy', 'Create financial forecasts']
+        resources: ['AQA Business Studies specification', 'Case study examples', 'Financial calculation worksheets', 'Business plan templates'],
+        tips: ['Use AQA command words correctly', 'Apply business theory to real examples', 'Show clear chains of reasoning', 'Include quantitative and qualitative analysis'],
+        requirements: ['Complete detailed business plan with AQA marking criteria', 'Calculate break-even and cash flow', 'Analyze stakeholder impact', 'Present recommendations']
       },
       {
-        subject: 'Computer Science',
-        title: 'Programming Mastery Challenge',
-        description: 'Develop algorithmic thinking through practical programming projects and problem-solving',
-        topics: ['Algorithms', 'Data structures', 'Programming logic', 'Testing'],
+        subject: 'ComputerScience',
+        title: 'Programming Mastery Challenge (AQA)',
+        description: 'Master AQA GCSE Computer Science programming requirements through algorithm implementation and computational thinking',
+        topics: ['Algorithms', 'Data structures', 'Programming constructs', 'Testing and debugging', 'Problem decomposition'],
         difficulty: 'Hard' as const,
         xp: 130,
         estimatedTime: '5-6 hours',
-        resources: ['AQA Computer Science textbook', 'Programming environments', 'Algorithm visualizations'],
-        tips: ['Plan before coding', 'Test thoroughly', 'Comment your code clearly'],
-        requirements: ['Write 3 programs', 'Solve algorithm challenges', 'Complete debugging exercises']
+        resources: ['AQA Computer Science Programming Guide', 'Python/pseudocode examples', 'Algorithm trace tables', 'Programming challenges'],
+        tips: ['Use AQA pseudocode conventions', 'Practice trace tables for algorithms', 'Learn both Python and pseudocode formats', 'Focus on efficiency and readability'],
+        requirements: ['Write 3 programs using AQA assessment criteria', 'Complete algorithm trace exercises', 'Solve computational thinking problems', 'Debug provided code snippets']
       },
       {
-        subject: 'Physical Education',
-        title: 'Sports Performance Analysis',
-        description: 'Analyze athletic performance using scientific principles of training and biomechanics',
-        topics: ['Training principles', 'Sports psychology', 'Biomechanics', 'Performance analysis'],
+        subject: 'PE',
+        title: 'Sports Performance Analysis (AQA)',
+        description: 'Apply AQA GCSE PE scientific principles to analyze athletic performance, training methods, and biomechanical factors',
+        topics: ['Training principles (FITT)', 'Sports psychology factors', 'Biomechanical analysis', 'Injury prevention', 'Fitness components'],
         difficulty: 'Medium' as const,
         xp: 75,
         estimatedTime: '3-4 hours',
-        resources: ['AQA PE textbook', 'Performance analysis videos', 'Training plan templates'],
-        tips: ['Use real sports examples', 'Apply FITT principles', 'Consider individual differences'],
-        requirements: ['Design training program', 'Analyze movement patterns', 'Complete fitness assessments']
+        resources: ['AQA PE specification and past papers', 'Sports analysis videos', 'Training principle worksheets', 'Biomechanics diagrams'],
+        tips: ['Link theory to practical examples', 'Use AQA key terminology correctly', 'Apply FITT principles systematically', 'Consider both physical and psychological factors'],
+        requirements: ['Design periodised training program using AQA criteria', 'Complete biomechanical movement analysis', 'Evaluate fitness testing methods', 'Apply injury prevention strategies']
       }
     ]
   }

@@ -89,16 +89,19 @@ export class AIStudyAssistant {
         Generate 3 personalized daily study quests for a GCSE student with XP levels: ${JSON.stringify(xpData)}.
         Consider their strengths and weaknesses. Recent completed quests: ${JSON.stringify(completedQuests.slice(-5))}.
         
-        Focus on varied activities: practice problems, revision, reading, videos, etc.
+        Use these EXACT subjects: Maths (Edexcel), EnglishLanguage (AQA), EnglishLiterature (AQA), Physics (AQA), French (AQA), Business (AQA), Biology (AQA), ComputerScience (AQA), PE (AQA), Chemistry (Combined Science AQA).
+        
+        Focus on GCSE curriculum topics: past paper practice, exam techniques, specific learning objectives, revision cards, timed exercises.
+        Include exam board specific content where relevant (e.g. Edexcel for Maths, AQA for others).
         
         Respond with JSON in this format:
         {
           "quests": [
             {
-              "title": "Quest title",
-              "description": "Detailed description of what to do",
+              "title": "Quest title with exam board context",
+              "description": "Specific GCSE curriculum task with exam focus",
               "xp": 15-40,
-              "subject": "subject name",
+              "subject": "exact subject key (Maths, EnglishLanguage, etc.)",
               "difficulty": "Easy|Medium|Hard",
               "estimatedTime": "time estimate"
             }
