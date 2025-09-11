@@ -1,12 +1,16 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useLocalStorage } from '@/hooks/use-local-storage';
-import { Lightbulb, ChartBar, Flame, CheckSquare, ExternalLink, Archive, Eye, Download, BookOpen, FileText, Atom, Bot, Sparkles, Target } from 'lucide-react';
+import { Lightbulb, ChartBar, Flame, CheckSquare, ExternalLink, Archive, Eye, Download, BookOpen, FileText, Atom, Bot, Sparkles, Target, Info, Calendar, Clock, MapPin } from 'lucide-react';
 import { aiAssistant, type AIStudyTip, type AIQuest, type AIRecommendation } from '@/lib/aiService';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import type { AppState } from '@shared/schema';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
+import { WeeklyQuestSection } from '@/components/WeeklyQuestSection';
+import { generateWeeklyQuests, shouldRefreshWeeklyQuests, getCurrentWeek, type WeeklyQuest } from '@/lib/weeklyQuests';
+import type { AppState, PastPaper } from '@shared/schema';
 
 const DEFAULT_STATE: AppState = {
   xp: {
@@ -142,8 +146,128 @@ function MiniCalendar({ highlighted = [] }: { highlighted: number[] }) {
   );
 }
 
+function PaperInfoModal({ paper, isOpen, onClose }: { paper: PastPaper | null; isOpen: boolean; onClose: () => void; }) {
+  if (!paper) return null;
+
+  const getDifficultyColor = (difficulty: string) => {
+    switch (difficulty) {
+      case 'Easy': return 'bg-green-500';
+      case 'Medium': return 'bg-yellow-500';
+      case 'Hard': return 'bg-red-500';
+      default: return 'bg-gray-500';
+    }
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle className="flex items-start gap-3">
+            <Info className="h-6 w-6 text-primary flex-shrink-0" />
+            <div>
+              <h2 className="text-lg font-bold">{paper.title}</h2>
+              <div className="flex items-center gap-2 mt-1">
+                <Badge variant="secondary">{paper.subject}</Badge>
+                <Badge variant="outline">{paper.board}</Badge>
+                <div className="flex items-center gap-1">
+                  <div className={`w-2 h-2 rounded-full ${getDifficultyColor(paper.difficulty)}`} />
+                  <span className="text-sm text-muted-foreground">{paper.difficulty}</span>
+                </div>
+              </div>
+            </div>
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-6">
+          {/* Paper Details */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+                <span className="font-medium">Exam Details</span>
+              </div>
+              <div className="text-sm space-y-1 ml-6">
+                <p>Year: <span className="font-medium">{paper.year}</span></p>
+                <p>Season: <span className="font-medium">{paper.season}</span></p>
+                <p>Paper: <span className="font-medium">{paper.paperNumber}</span></p>
+                <p>Code: <span className="font-medium font-mono text-xs">{paper.curriculumCode}</span></p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <BookOpen className="h-4 w-4 text-muted-foreground" />
+                <span className="font-medium">Topics Covered</span>
+              </div>
+              <div className="flex flex-wrap gap-1 ml-6">
+                {paper.topics?.map((topic, index) => (
+                  <Badge key={index} variant="outline" className="text-xs">
+                    {topic}
+                  </Badge>
+                )) || <span className="text-sm text-muted-foreground">No topics available</span>}
+              </div>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="border-t pt-4">
+            <h3 className="font-medium mb-3">Available Resources</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <Button
+                className="flex-1 quest-button-gradient text-white hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl"
+                onClick={() => window.open(paper.downloadUrl, '_blank')}
+                data-testid={`modal-download-paper-${paper.id}`}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Download Paper
+              </Button>
+              
+              {paper.markSchemeUrl && (
+                <Button
+                  variant="secondary" 
+                  className="flex-1 hover:scale-105 transition-all duration-200"
+                  onClick={() => window.open(paper.markSchemeUrl, '_blank')}
+                  data-testid={`modal-download-markscheme-${paper.id}`}
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  Mark Scheme
+                </Button>
+              )}
+              
+              <Button
+                variant="outline"
+                className="flex-1 hover:scale-105 transition-all duration-200"
+                onClick={() => window.open(paper.url, '_blank')}
+                data-testid={`modal-preview-paper-${paper.id}`}
+              >
+                <Eye className="h-4 w-4 mr-2" />
+                Preview
+              </Button>
+            </div>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function Dashboard() {
   const [state, setState] = useLocalStorage('solo_leveling_state', DEFAULT_STATE);
+  
+  // Weekly quest state management
+  const [weeklyQuests, setWeeklyQuests] = useLocalStorage('weekly_quests', [] as WeeklyQuest[]);
+  const [lastWeeklyUpdate, setLastWeeklyUpdate] = useLocalStorage('last_weekly_update', { weekNumber: 0, year: 0 });
+  
+  // Initialize or refresh weekly quests based on current week
+  useEffect(() => {
+    const { weekNumber, year } = getCurrentWeek();
+    if (shouldRefreshWeeklyQuests(lastWeeklyUpdate.weekNumber, lastWeeklyUpdate.year)) {
+      const newWeeklyQuests = generateWeeklyQuests();
+      setWeeklyQuests(newWeeklyQuests);
+      setLastWeeklyUpdate({ weekNumber, year });
+    }
+  }, []);
+
   const [filter, setFilter] = useState({
     subject: 'All',
     difficulty: 'All',
@@ -153,6 +277,8 @@ export default function Dashboard() {
     category: 'All',
     subject: 'All'
   });
+  const [selectedPaper, setSelectedPaper] = useState<PastPaper | null>(null);
+  const [isPaperInfoOpen, setIsPaperInfoOpen] = useState(false);
   const [aiStudyTip, setAiStudyTip] = useState<AIStudyTip | null>(null);
   const [aiQuests, setAiQuests] = useState<AIQuest[]>([]);
   const [aiRecommendations, setAiRecommendations] = useState<AIRecommendation[]>([]);
@@ -233,6 +359,49 @@ export default function Dashboard() {
           : quest
       )
     }));
+  }
+
+  // Weekly quest completion handler
+  function completeWeeklyQuest(questId: number) {
+    setWeeklyQuests(prev => 
+      prev.map(quest => 
+        quest.id === questId 
+          ? { ...quest, completed: true }
+          : quest
+      )
+    );
+    
+    // Award XP based on quest subject
+    const completedQuest = weeklyQuests.find(q => q.id === questId);
+    if (completedQuest) {
+      const subjectKey = getSubjectKey(completedQuest.subject);
+      if (subjectKey) {
+        setState(prev => ({
+          ...prev,
+          xp: {
+            ...prev.xp,
+            [subjectKey]: prev.xp[subjectKey] + completedQuest.xp
+          }
+        }));
+      }
+    }
+  }
+
+  // Helper function to map quest subjects to XP keys
+  function getSubjectKey(subject: string): keyof typeof state.xp | null {
+    const subjectMapping: Record<string, keyof typeof state.xp> = {
+      'Mathematics': 'Math',
+      'Physics': 'Physics', 
+      'Chemistry': 'Chemistry',
+      'Biology': 'Biology',
+      'History': 'History',
+      'English Language': 'History', // Temporary mapping
+      'French': 'History', // Temporary mapping
+      'Business Studies': 'History', // Temporary mapping
+      'Computer Science': 'History', // Temporary mapping
+      'Physical Education': 'History' // Temporary mapping
+    };
+    return subjectMapping[subject] || null;
   }
 
   function addXP(subject: keyof typeof state.xp, amount: number) {
@@ -426,6 +595,12 @@ export default function Dashboard() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Weekly Quest Section */}
+          <WeeklyQuestSection 
+            weeklyQuests={weeklyQuests}
+            onCompleteQuest={completeWeeklyQuest}
+          />
 
           {/* AI Smart Recommendations */}
           <Card className="mb-8">
@@ -663,10 +838,13 @@ export default function Dashboard() {
                         variant="outline"
                         size="sm"
                         className="flex-1 text-xs hover:scale-105 transition-all duration-200"
-                        onClick={() => window.open(paper.url, '_blank')}
-                        data-testid={`preview-paper-${paper.id}`}
+                        onClick={() => {
+                          setSelectedPaper(paper);
+                          setIsPaperInfoOpen(true);
+                        }}
+                        data-testid={`info-paper-${paper.id}`}
                       >
-                        <Eye className="h-3 w-3 mr-1" />
+                        <Info className="h-3 w-3 mr-1" />
                         Info
                       </Button>
                       <Button
@@ -698,6 +876,13 @@ export default function Dashboard() {
           
         </div>
       </div>
+      
+      {/* Paper Info Modal */}
+      <PaperInfoModal 
+        paper={selectedPaper}
+        isOpen={isPaperInfoOpen}
+        onClose={() => setIsPaperInfoOpen(false)}
+      />
     </TooltipProvider>
   );
 }
