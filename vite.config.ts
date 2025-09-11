@@ -14,6 +14,14 @@ export default defineConfig({
             m.cartographer(),
           ),
         ]
+        import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+
+export default defineConfig({
+  plugins: [react()],
+  base: '/final-replit-imported-study-plan/', // 👈 add this line
+})
+
       : []),
   ],
   resolve: {
