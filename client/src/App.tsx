@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, Redirect } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -8,27 +8,45 @@ import Dashboard from "@/pages/dashboard";
 import Landing from "@/pages/Landing";
 import NotFound from "@/pages/not-found";
 
+// Optional: redirect unauthenticated users to "/" if they try a protected route
+function ProtectedRoute({ component: Component, ...props }: any) {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) return null; // You can render a spinner or loading component here
+  return isAuthenticated ? <Component {...props} /> : <Redirect to="/" />;
+}
+
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-950 via-purple-900 to-pink-900 flex items-center justify-center">
-        <div className="text-white text-xl">Loading your study dashboard...</div>
+        <div className="text-white text-xl">
+          Loading your study dashboard...
+        </div>
       </div>
     );
   }
 
   return (
     <Switch>
-      {!isAuthenticated ? (
-        <Route path="/" component={Landing} />
-      ) : (
+      {/* Public Route */}
+      {!isAuthenticated && <Route path="/" component={Landing} />}
+
+      {/* Authenticated Routes */}
+      {isAuthenticated && (
         <>
           <Route path="/" component={Dashboard} />
+          {/* Add more authenticated routes here */}
+          {/* Example: <Route path="/study-plan" component={StudyPlan} /> */}
         </>
       )}
-      <Route component={NotFound} />
+
+      {/* Catch-all route */}
+      <Route path="*">
+        <NotFound />
+      </Route>
     </Switch>
   );
 }
