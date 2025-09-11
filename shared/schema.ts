@@ -28,11 +28,16 @@ export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
 
 export const subjectXPSchema = z.object({
-  Math: z.number(),
-  Physics: z.number(),
-  Chemistry: z.number(),
-  Biology: z.number(),
-  History: z.number(),
+  Maths: z.number(), // Maths Edexcel
+  EnglishLanguage: z.number(), // English Language AQA
+  EnglishLiterature: z.number(), // English Literature AQA
+  Physics: z.number(), // Physics AQA
+  French: z.number(), // French AQA
+  Business: z.number(), // Business AQA
+  Biology: z.number(), // Biology AQA
+  ComputerScience: z.number(), // Computer Science AQA
+  PE: z.number(), // Physical Education AQA
+  Chemistry: z.number(), // Chemistry - Combined Science AQA
 });
 
 export const pastPaperSchema = z.object({
@@ -101,6 +106,7 @@ export const resourceSchema = z.object({
 });
 
 export const appStateSchema = z.object({
+  version: z.string().optional(), // Migration version tracking
   xp: subjectXPSchema,
   pastPapers: z.array(pastPaperSchema),
   quests: z.array(questSchema),

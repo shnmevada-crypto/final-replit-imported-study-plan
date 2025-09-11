@@ -12,19 +12,148 @@ import { WeeklyQuestSection } from '@/components/WeeklyQuestSection';
 import { generateWeeklyQuests, shouldRefreshWeeklyQuests, getCurrentWeek, type WeeklyQuest } from '@/lib/weeklyQuests';
 import type { AppState, PastPaper } from '@shared/schema';
 
+// Migration utility functions
+interface LegacyXPStructure {
+  [key: string]: number;
+}
+
+interface LegacyAppState {
+  xp: LegacyXPStructure;
+  version?: string;
+  [key: string]: any;
+}
+
+// Subject name normalizer - maps legacy and variant names to current schema
+function normalizeSubjectName(subject: string): string {
+  const subjectMap: Record<string, string> = {
+    // Legacy mappings
+    'Math': 'Maths',
+    'Mathematics': 'Maths',
+    'English': 'EnglishLanguage', // Default English to Language
+    'English Language': 'EnglishLanguage',
+    'English Literature': 'EnglishLiterature',
+    'Computer Science': 'ComputerScience',
+    'Physical Education': 'PE',
+    'Business Studies': 'Business',
+    
+    // Current schema (identity mappings)
+    'Maths': 'Maths',
+    'EnglishLanguage': 'EnglishLanguage',
+    'EnglishLiterature': 'EnglishLiterature',
+    'Physics': 'Physics',
+    'French': 'French',
+    'Business': 'Business',
+    'Biology': 'Biology',
+    'ComputerScience': 'ComputerScience',
+    'PE': 'PE',
+    'Chemistry': 'Chemistry'
+  };
+  
+  return subjectMap[subject] || subject;
+}
+
+// Migration function for XP structure
+function migrateXPStructure(legacyXP: LegacyXPStructure): AppState['xp'] {
+  const migratedXP: AppState['xp'] = {
+    Maths: 0,
+    EnglishLanguage: 0,
+    EnglishLiterature: 0,
+    Physics: 0,
+    French: 0,
+    Business: 0,
+    Biology: 0,
+    ComputerScience: 0,
+    PE: 0,
+    Chemistry: 0
+  };
+
+  // Map legacy keys to new structure
+  Object.entries(legacyXP).forEach(([legacyKey, value]) => {
+    const normalizedKey = normalizeSubjectName(legacyKey);
+    
+    // Only migrate if the normalized key exists in our schema
+    if (normalizedKey in migratedXP) {
+      migratedXP[normalizedKey as keyof AppState['xp']] = value;
+    }
+    // Legacy subjects like 'History' are deliberately excluded from new schema
+  });
+
+  return migratedXP;
+}
+
+// Main migration function
+function migrateAppState(legacyState: LegacyAppState): AppState {
+  // If already migrated (version 2), return as-is
+  if (legacyState.version === '2') {
+    return legacyState as AppState;
+  }
+
+  console.log('Migrating localStorage from legacy format to GCSE schema v2');
+  
+  const migratedState: AppState = {
+    ...DEFAULT_STATE, // Start with default structure
+    version: '2', // Add version flag
+    xp: migrateXPStructure(legacyState.xp),
+    // Preserve other fields if they exist and are valid
+    ...(legacyState.pastPapers && { pastPapers: legacyState.pastPapers }),
+    ...(legacyState.quests && { quests: legacyState.quests }),
+    ...(legacyState.settings && { settings: legacyState.settings }),
+    ...(legacyState.studyStreak && { studyStreak: legacyState.studyStreak }),
+    ...(legacyState.resources && { resources: legacyState.resources })
+  };
+
+  return migratedState;
+}
+
+// Hook to handle migration on localStorage initialization
+function useMigratedLocalStorage<T extends AppState>(key: string, defaultValue: T): [T, (value: T | ((val: T) => T)) => void] {
+  const [rawState, setRawState] = useLocalStorage(key, defaultValue);
+  
+  // Migration logic
+  const [migratedState, setMigratedState] = useState<T>(() => {
+    if (key === 'solo_leveling_state') {
+      return migrateAppState(rawState as any) as T;
+    }
+    return rawState;
+  });
+
+  // Update localStorage with migrated state on first load
+  useEffect(() => {
+    if (key === 'solo_leveling_state' && (!rawState.version || rawState.version !== '2')) {
+      console.log('Saving migrated state to localStorage');
+      setRawState(migratedState);
+    }
+  }, []);
+
+  // Custom setter that updates both states
+  const setValue = (value: T | ((val: T) => T)) => {
+    const newValue = value instanceof Function ? value(migratedState) : value;
+    setMigratedState(newValue);
+    setRawState(newValue);
+  };
+
+  return [migratedState, setValue];
+}
+
 const DEFAULT_STATE: AppState = {
+  version: '2', // Migration version flag
   xp: {
-    Math: 120,
-    Physics: 85,
-    Chemistry: 90,
-    Biology: 75,
-    History: 50,
+    Maths: 120, // Maths Edexcel
+    EnglishLanguage: 85, // English Language AQA
+    EnglishLiterature: 75, // English Literature AQA
+    Physics: 90, // Physics AQA
+    French: 65, // French AQA
+    Business: 80, // Business AQA
+    Biology: 95, // Biology AQA
+    ComputerScience: 70, // Computer Science AQA
+    PE: 60, // Physical Education AQA
+    Chemistry: 85, // Chemistry - Combined Science AQA
   },
   pastPapers: [
     // AQA Mathematics Past Papers
-    { id: 1, title: 'Mathematics Paper 1 (Higher Tier - June 2023)', subject: 'Math', difficulty: 'Hard', board: 'AQA', year: 2023, season: 'May/June', paperNumber: '1H', topics: ['Algebra', 'Number', 'Geometry'], curriculumCode: 'AQA-8300-1H', url: 'https://www.aqa.org.uk/resources/mathematics/gcse/mathematics/past-papers-and-mark-schemes', downloadUrl: 'https://filestore.aqa.org.uk/resources/mathematics/AQA-83001H-QP-JUN23.PDF', markSchemeUrl: 'https://filestore.aqa.org.uk/resources/mathematics/AQA-83001H-W-MS-JUN23.PDF' },
-    { id: 2, title: 'Mathematics Paper 2 (Higher Tier - June 2023)', subject: 'Math', difficulty: 'Hard', board: 'AQA', year: 2023, season: 'May/June', paperNumber: '2H', topics: ['Statistics', 'Probability', 'Ratio'], curriculumCode: 'AQA-8300-2H', url: 'https://www.aqa.org.uk/resources/mathematics/gcse/mathematics/past-papers-and-mark-schemes', downloadUrl: 'https://filestore.aqa.org.uk/resources/mathematics/AQA-83002H-QP-JUN23.PDF', markSchemeUrl: 'https://filestore.aqa.org.uk/resources/mathematics/AQA-83002H-W-MS-JUN23.PDF' },
-    { id: 3, title: 'Mathematics Paper 3 (Higher Tier - June 2023)', subject: 'Math', difficulty: 'Hard', board: 'AQA', year: 2023, season: 'May/June', paperNumber: '3H', topics: ['Geometry', 'Trigonometry', 'Calculus'], curriculumCode: 'AQA-8300-3H', url: 'https://www.aqa.org.uk/resources/mathematics/gcse/mathematics/past-papers-and-mark-schemes', downloadUrl: 'https://filestore.aqa.org.uk/resources/mathematics/AQA-83003H-QP-JUN23.PDF', markSchemeUrl: 'https://filestore.aqa.org.uk/resources/mathematics/AQA-83003H-W-MS-JUN23.PDF' },
+    { id: 1, title: 'Mathematics Paper 1 (Higher Tier - June 2023)', subject: 'Maths', difficulty: 'Hard', board: 'AQA', year: 2023, season: 'May/June', paperNumber: '1H', topics: ['Algebra', 'Number', 'Geometry'], curriculumCode: 'AQA-8300-1H', url: 'https://www.aqa.org.uk/resources/mathematics/gcse/mathematics/past-papers-and-mark-schemes', downloadUrl: 'https://filestore.aqa.org.uk/resources/mathematics/AQA-83001H-QP-JUN23.PDF', markSchemeUrl: 'https://filestore.aqa.org.uk/resources/mathematics/AQA-83001H-W-MS-JUN23.PDF' },
+    { id: 2, title: 'Mathematics Paper 2 (Higher Tier - June 2023)', subject: 'Maths', difficulty: 'Hard', board: 'AQA', year: 2023, season: 'May/June', paperNumber: '2H', topics: ['Statistics', 'Probability', 'Ratio'], curriculumCode: 'AQA-8300-2H', url: 'https://www.aqa.org.uk/resources/mathematics/gcse/mathematics/past-papers-and-mark-schemes', downloadUrl: 'https://filestore.aqa.org.uk/resources/mathematics/AQA-83002H-QP-JUN23.PDF', markSchemeUrl: 'https://filestore.aqa.org.uk/resources/mathematics/AQA-83002H-W-MS-JUN23.PDF' },
+    { id: 3, title: 'Mathematics Paper 3 (Higher Tier - June 2023)', subject: 'Maths', difficulty: 'Hard', board: 'AQA', year: 2023, season: 'May/June', paperNumber: '3H', topics: ['Geometry', 'Trigonometry', 'Calculus'], curriculumCode: 'AQA-8300-3H', url: 'https://www.aqa.org.uk/resources/mathematics/gcse/mathematics/past-papers-and-mark-schemes', downloadUrl: 'https://filestore.aqa.org.uk/resources/mathematics/AQA-83003H-QP-JUN23.PDF', markSchemeUrl: 'https://filestore.aqa.org.uk/resources/mathematics/AQA-83003H-W-MS-JUN23.PDF' },
 
     // AQA Physics Past Papers  
     { id: 4, title: 'Physics Paper 1 (Higher Tier - June 2023)', subject: 'Physics', difficulty: 'Hard', board: 'AQA', year: 2023, season: 'May/June', paperNumber: '1H', topics: ['Energy', 'Electricity', 'Particle Model'], curriculumCode: 'AQA-8463-1H', url: 'https://www.aqa.org.uk/resources/physics/gcse/physics/past-papers-and-mark-schemes', downloadUrl: 'https://filestore.aqa.org.uk/resources/physics/AQA-84631H-QP-JUN23.PDF', markSchemeUrl: 'https://filestore.aqa.org.uk/resources/physics/AQA-84631H-W-MS-JUN23.PDF' },
@@ -39,18 +168,16 @@ const DEFAULT_STATE: AppState = {
     { id: 9, title: 'Biology Paper 2 (Higher Tier - June 2023)', subject: 'Biology', difficulty: 'Hard', board: 'AQA', year: 2023, season: 'May/June', paperNumber: '2H', topics: ['Bioenergetics', 'Homeostasis', 'Inheritance'], curriculumCode: 'AQA-8461-2H', url: 'https://www.aqa.org.uk/resources/biology/gcse/biology/past-papers-and-mark-schemes', downloadUrl: 'https://filestore.aqa.org.uk/resources/biology/AQA-84612H-QP-JUN23.PDF', markSchemeUrl: 'https://filestore.aqa.org.uk/resources/biology/AQA-84612H-W-MS-JUN23.PDF' },
 
     // Edexcel Mathematics Past Papers
-    { id: 10, title: 'Mathematics Paper 1 (Higher Tier - June 2023)', subject: 'Math', difficulty: 'Hard', board: 'Edexcel', year: 2023, season: 'May/June', paperNumber: '1H', topics: ['Number', 'Algebra', 'Geometry'], curriculumCode: 'EDEXCEL-1MA1-1H', url: 'https://qualifications.pearson.com/en/qualifications/edexcel-gcses/mathematics-2015.html', downloadUrl: 'https://qualifications.pearson.com/content/dam/pdf/GCSE/mathematics/2015/exam-materials/1MA1_1H_que_20230524.pdf', markSchemeUrl: 'https://qualifications.pearson.com/content/dam/pdf/GCSE/mathematics/2015/exam-materials/1MA1_1H_msc_20230524.pdf' },
+    { id: 10, title: 'Mathematics Paper 1 (Higher Tier - June 2023)', subject: 'Maths', difficulty: 'Hard', board: 'Edexcel', year: 2023, season: 'May/June', paperNumber: '1H', topics: ['Number', 'Algebra', 'Geometry'], curriculumCode: 'EDEXCEL-1MA1-1H', url: 'https://qualifications.pearson.com/en/qualifications/edexcel-gcses/mathematics-2015.html', downloadUrl: 'https://qualifications.pearson.com/content/dam/pdf/GCSE/mathematics/2015/exam-materials/1MA1_1H_que_20230524.pdf', markSchemeUrl: 'https://qualifications.pearson.com/content/dam/pdf/GCSE/mathematics/2015/exam-materials/1MA1_1H_msc_20230524.pdf' },
 
     // OCR Computer Science Past Papers
-    { id: 11, title: 'Computer Science J277/01 (June 2023)', subject: 'Computer Science', difficulty: 'Medium', board: 'OCR', year: 2023, season: 'May/June', paperNumber: '01', topics: ['Computer Systems', 'Computational Thinking', 'Algorithms'], curriculumCode: 'OCR-J277-01', url: 'https://www.ocr.org.uk/qualifications/gcse/computer-science-j277-from-2020/', downloadUrl: 'https://www.ocr.org.uk/Images/558027-question-paper-computer-systems-j277-01-advanced-information.pdf', markSchemeUrl: 'https://www.ocr.org.uk/Images/558028-mark-scheme-computer-systems-j277-01-advanced-information.pdf' },
-    { id: 12, title: 'Computer Science J277/02 (June 2023)', subject: 'Computer Science', difficulty: 'Hard', board: 'OCR', year: 2023, season: 'May/June', paperNumber: '02', topics: ['Computational Thinking', 'Algorithms', 'Programming'], curriculumCode: 'OCR-J277-02', url: 'https://www.ocr.org.uk/qualifications/gcse/computer-science-j277-from-2020/', downloadUrl: 'https://www.ocr.org.uk/Images/558030-question-paper-computational-thinking-algorithms-and-programming-j277-02.pdf', markSchemeUrl: 'https://www.ocr.org.uk/Images/558031-mark-scheme-computational-thinking-algorithms-and-programming-j277-02.pdf' },
+    { id: 11, title: 'Computer Science J277/01 (June 2023)', subject: 'ComputerScience', difficulty: 'Medium', board: 'OCR', year: 2023, season: 'May/June', paperNumber: '01', topics: ['Computer Systems', 'Computational Thinking', 'Algorithms'], curriculumCode: 'OCR-J277-01', url: 'https://www.ocr.org.uk/qualifications/gcse/computer-science-j277-from-2020/', downloadUrl: 'https://www.ocr.org.uk/Images/558027-question-paper-computer-systems-j277-01-advanced-information.pdf', markSchemeUrl: 'https://www.ocr.org.uk/Images/558028-mark-scheme-computer-systems-j277-01-advanced-information.pdf' },
+    { id: 12, title: 'Computer Science J277/02 (June 2023)', subject: 'ComputerScience', difficulty: 'Hard', board: 'OCR', year: 2023, season: 'May/June', paperNumber: '02', topics: ['Computational Thinking', 'Algorithms', 'Programming'], curriculumCode: 'OCR-J277-02', url: 'https://www.ocr.org.uk/qualifications/gcse/computer-science-j277-from-2020/', downloadUrl: 'https://www.ocr.org.uk/Images/558030-question-paper-computational-thinking-algorithms-and-programming-j277-02.pdf', markSchemeUrl: 'https://www.ocr.org.uk/Images/558031-mark-scheme-computational-thinking-algorithms-and-programming-j277-02.pdf' },
 
     // AQA English Literature Past Papers
-    { id: 13, title: 'English Literature Paper 1 (June 2023)', subject: 'English', difficulty: 'Medium', board: 'AQA', year: 2023, season: 'May/June', paperNumber: '1', topics: ['Shakespeare', 'Victorian Novel'], curriculumCode: 'AQA-8702-1', url: 'https://www.aqa.org.uk/resources/english/gcse/english-literature/past-papers-and-mark-schemes', downloadUrl: 'https://filestore.aqa.org.uk/resources/english/AQA-87021-QP-JUN23.PDF', markSchemeUrl: 'https://filestore.aqa.org.uk/resources/english/AQA-87021-W-MS-JUN23.PDF' },
-    { id: 14, title: 'English Literature Paper 2 (June 2023)', subject: 'English', difficulty: 'Medium', board: 'AQA', year: 2023, season: 'May/June', paperNumber: '2', topics: ['Modern Drama', 'Poetry', 'Unseen Poetry'], curriculumCode: 'AQA-8702-2', url: 'https://www.aqa.org.uk/resources/english/gcse/english-literature/past-papers-and-mark-schemes', downloadUrl: 'https://filestore.aqa.org.uk/resources/english/AQA-87022-QP-JUN23.PDF', markSchemeUrl: 'https://filestore.aqa.org.uk/resources/english/AQA-87022-W-MS-JUN23.PDF' },
+    { id: 13, title: 'English Literature Paper 1 (June 2023)', subject: 'EnglishLiterature', difficulty: 'Medium', board: 'AQA', year: 2023, season: 'May/June', paperNumber: '1', topics: ['Shakespeare', 'Victorian Novel'], curriculumCode: 'AQA-8702-1', url: 'https://www.aqa.org.uk/resources/english/gcse/english-literature/past-papers-and-mark-schemes', downloadUrl: 'https://filestore.aqa.org.uk/resources/english/AQA-87021-QP-JUN23.PDF', markSchemeUrl: 'https://filestore.aqa.org.uk/resources/english/AQA-87021-W-MS-JUN23.PDF' },
+    { id: 14, title: 'English Literature Paper 2 (June 2023)', subject: 'EnglishLiterature', difficulty: 'Medium', board: 'AQA', year: 2023, season: 'May/June', paperNumber: '2', topics: ['Modern Drama', 'Poetry', 'Unseen Poetry'], curriculumCode: 'AQA-8702-2', url: 'https://www.aqa.org.uk/resources/english/gcse/english-literature/past-papers-and-mark-schemes', downloadUrl: 'https://filestore.aqa.org.uk/resources/english/AQA-87022-QP-JUN23.PDF', markSchemeUrl: 'https://filestore.aqa.org.uk/resources/english/AQA-87022-W-MS-JUN23.PDF' },
 
-    // Edexcel History Past Papers
-    { id: 15, title: 'History Paper 1 - Medicine Through Time (June 2023)', subject: 'History', difficulty: 'Hard', board: 'Edexcel', year: 2023, season: 'May/June', paperNumber: '1', topics: ['Medicine Through Time', 'Historic Environment'], curriculumCode: 'EDEXCEL-1HI0-10', url: 'https://qualifications.pearson.com/en/qualifications/edexcel-gcses/history-2016.html', downloadUrl: 'https://qualifications.pearson.com/content/dam/pdf/GCSE/History/2016/exam-materials/1HI0_10_que_20230524.pdf', markSchemeUrl: 'https://qualifications.pearson.com/content/dam/pdf/GCSE/History/2016/exam-materials/1HI0_10_msc_20230524.pdf' }
   ],
   quests: [
     { id: 1, title: 'Complete a practice quiz', xp: 25, completed: false },
@@ -252,7 +379,7 @@ function PaperInfoModal({ paper, isOpen, onClose }: { paper: PastPaper | null; i
 }
 
 export default function Dashboard() {
-  const [state, setState] = useLocalStorage('solo_leveling_state', DEFAULT_STATE);
+  const [state, setState] = useMigratedLocalStorage('solo_leveling_state', DEFAULT_STATE);
   
   // Weekly quest state management
   const [weeklyQuests, setWeeklyQuests] = useLocalStorage('weekly_quests', [] as WeeklyQuest[]);
@@ -390,16 +517,19 @@ export default function Dashboard() {
   // Helper function to map quest subjects to XP keys
   function getSubjectKey(subject: string): keyof typeof state.xp | null {
     const subjectMapping: Record<string, keyof typeof state.xp> = {
-      'Mathematics': 'Math',
-      'Physics': 'Physics', 
-      'Chemistry': 'Chemistry',
+      'Mathematics': 'Maths',
+      'Maths': 'Maths',
+      'English Language': 'EnglishLanguage',
+      'English Literature': 'EnglishLiterature', 
+      'Physics': 'Physics',
+      'French': 'French',
+      'Business': 'Business',
+      'Business Studies': 'Business',
       'Biology': 'Biology',
-      'History': 'History',
-      'English Language': 'History', // Temporary mapping
-      'French': 'History', // Temporary mapping
-      'Business Studies': 'History', // Temporary mapping
-      'Computer Science': 'History', // Temporary mapping
-      'Physical Education': 'History' // Temporary mapping
+      'Computer Science': 'ComputerScience',
+      'Physical Education': 'PE',
+      'PE': 'PE',
+      'Chemistry': 'Chemistry'
     };
     return subjectMapping[subject] || null;
   }
@@ -704,13 +834,16 @@ export default function Dashboard() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="All">All Subjects</SelectItem>
-                      <SelectItem value="Math">Mathematics</SelectItem>
-                      <SelectItem value="Physics">Physics</SelectItem>
-                      <SelectItem value="Chemistry">Chemistry</SelectItem>
-                      <SelectItem value="Biology">Biology</SelectItem>
-                      <SelectItem value="History">History</SelectItem>
-                      <SelectItem value="English">English</SelectItem>
-                      <SelectItem value="Computer Science">Computer Science</SelectItem>
+                      <SelectItem value="Maths">Maths (Edexcel)</SelectItem>
+                      <SelectItem value="EnglishLanguage">English Language (AQA)</SelectItem>
+                      <SelectItem value="EnglishLiterature">English Literature (AQA)</SelectItem>
+                      <SelectItem value="Physics">Physics (AQA)</SelectItem>
+                      <SelectItem value="French">French (AQA)</SelectItem>
+                      <SelectItem value="Business">Business (AQA)</SelectItem>
+                      <SelectItem value="Biology">Biology (AQA)</SelectItem>
+                      <SelectItem value="ComputerScience">Computer Science (AQA)</SelectItem>
+                      <SelectItem value="PE">PE (AQA)</SelectItem>
+                      <SelectItem value="Chemistry">Chemistry - Combined Science (AQA)</SelectItem>
                     </SelectContent>
                   </Select>
                   
