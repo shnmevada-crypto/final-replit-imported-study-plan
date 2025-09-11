@@ -6,13 +6,12 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import Dashboard from "@/pages/dashboard";
 import Landing from "@/pages/Landing";
-import NotFound from "@/pages/not-found";
 
 // Optional: redirect unauthenticated users to "/" if they try a protected route
 function ProtectedRoute({ component: Component, ...props }: any) {
   const { isAuthenticated, isLoading } = useAuth();
 
-  if (isLoading) return null; // You can render a spinner or loading component here
+  if (isLoading) return null; // Or render a spinner
   return isAuthenticated ? <Component {...props} /> : <Redirect to="/" />;
 }
 
@@ -31,21 +30,21 @@ function Router() {
 
   return (
     <Switch>
-      {/* Public Route */}
+      {/* Public route for unauthenticated users */}
       {!isAuthenticated && <Route path="/" component={Landing} />}
 
-      {/* Authenticated Routes */}
+      {/* Authenticated routes */}
       {isAuthenticated && (
         <>
           <Route path="/" component={Dashboard} />
-          {/* Add more authenticated routes here */}
+          {/* Add additional authenticated routes here */}
           {/* Example: <Route path="/study-plan" component={StudyPlan} /> */}
         </>
       )}
 
-      {/* Catch-all route */}
+      {/* Catch-all route for GitHub Pages SPA */}
       <Route path="*">
-        <NotFound />
+        {isAuthenticated ? <Dashboard /> : <Landing />}
       </Route>
     </Switch>
   );
